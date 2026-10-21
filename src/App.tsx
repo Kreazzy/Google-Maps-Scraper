@@ -19,14 +19,29 @@ import { LeadExtractorWorkspace } from './components/LeadExtractorWorkspace';
 import { LeadInspectorDrawer } from './components/LeadInspectorDrawer';
 import { SavedPipelineView } from './components/SavedPipelineView';
 import { PitchTemplatesView } from './components/PitchTemplatesView';
+import { ApiKeyModal } from './components/ApiKeyModal';
+import { Key } from 'lucide-react';
 
 const SAVED_LEADS_STORAGE_KEY = 'maplead_scout_saved_leads_v1';
 const TEMPLATES_STORAGE_KEY = 'maplead_scout_pitch_templates_v1';
+const API_KEY_STORAGE_KEY = 'maplead_scout_custom_api_key_v1';
 
 type ActiveWorkspaceTab = 'extractor' | 'pipeline' | 'templates' | 'methodology';
 
 export default function App() {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+  const envApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+  const [apiKey, setApiKey] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem(API_KEY_STORAGE_KEY);
+      return stored && stored.trim() ? stored.trim() : envApiKey;
+    } catch {
+      return envApiKey;
+    }
+  });
+
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [apiKeyModalError, setApiKeyModalError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<ActiveWorkspaceTab>('extractor');
   const [extractedLeads, setExtractedLeads] = useState<ExtractedBusinessLead[]>([]);
@@ -143,6 +158,24 @@ export default function App() {
     setSavedLeads((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  const handleSaveCustomApiKey = (newKey: string) => {
+    setApiKey(newKey);
+    try {
+      if (newKey) {
+        localStorage.setItem(API_KEY_STORAGE_KEY, newKey);
+      } else {
+        localStorage.removeItem(API_KEY_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to persist API key:', e);
+    }
+  };
+
+  const handleOpenApiKeyModal = (error?: string) => {
+    setApiKeyModalError(error || null);
+    setIsApiKeyModalOpen(true);
+  };
+
   const handlePrimaryExportCsv = () => {
     if (activeTab === 'pipeline' && savedLeads.length > 0) {
       exportLeadsToCsv(savedLeads, 'maplead-pipeline');
@@ -155,6 +188,7 @@ export default function App() {
 
   return (
     <APIProvider
+      key={apiKey}
       apiKey={apiKey}
       libraries={['places', 'marker']}
     >
@@ -233,13 +267,23 @@ export default function App() {
             </a>
           </nav>
 
-          {/* Zone 3: 1 primary action */}
-          <div className="flex items-center shrink-0">
+          {/* Zone 3: Actions (API Key config + Export) */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleOpenApiKeyModal()}
+              title="Configure Google Maps API Key"
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+            >
+              <Key className="w-3.5 h-3.5 text-slate-600" />
+              <span className="hidden sm:inline">API Key</span>
+            </button>
+
             <button
               type="button"
               onClick={handlePrimaryExportCsv}
               disabled={extractedLeads.length === 0 && savedLeads.length === 0}
-              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors whitespace-nowrap shrink-0"
+              className="px-4 py-2 text-xs font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               Export Leads CSV
             </button>
@@ -257,6 +301,7 @@ export default function App() {
               savedLeadsMap={savedLeadsMap}
               onSaveLead={handleSaveLead}
               onBulkSaveLeads={handleBulkSaveLeads}
+              onOpenApiKeyModal={handleOpenApiKeyModal}
             />
           )}
 
@@ -360,6 +405,15 @@ export default function App() {
               />
             )}
         </main>
+
+        {/* In-App API Key Configuration & Troubleshooting Modal */}
+        <ApiKeyModal
+          currentKey={apiKey}
+          isOpen={isApiKeyModalOpen}
+          onClose={() => setIsApiKeyModalOpen(false)}
+          onSaveKey={handleSaveCustomApiKey}
+          errorMessage={apiKeyModalError}
+        />
       </div>
     </APIProvider>
   );

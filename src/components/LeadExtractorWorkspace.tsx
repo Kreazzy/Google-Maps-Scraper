@@ -41,6 +41,7 @@ interface LeadExtractorWorkspaceProps {
   savedLeadsMap: Record<string, SavedLeadRecord>;
   onSaveLead: (lead: ExtractedBusinessLead, campaignList?: string) => void;
   onBulkSaveLeads: (leads: ExtractedBusinessLead[], campaignList?: string) => void;
+  onOpenApiKeyModal: (errorMsg?: string) => void;
 }
 
 const INDUSTRY_PRESETS = [
@@ -64,6 +65,7 @@ export const LeadExtractorWorkspace: React.FC<LeadExtractorWorkspaceProps> = ({
   savedLeadsMap,
   onSaveLead,
   onBulkSaveLeads,
+  onOpenApiKeyModal,
 }) => {
   const map = useMap();
   const placesLib = useMapsLibrary('places');
@@ -458,18 +460,27 @@ export const LeadExtractorWorkspace: React.FC<LeadExtractorWorkspaceProps> = ({
       </div>
 
       {errorMsg && (
-        <div className="bg-red-50 border-b border-red-200 px-6 py-2.5 text-xs text-red-800 flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="bg-red-50 border-b border-red-200 px-6 py-3 text-xs text-red-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-2 max-w-3xl">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-            <span>{errorMsg}</span>
+            <span className="leading-relaxed">{errorMsg}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setErrorMsg(null)}
-            className="text-red-700 hover:underline font-medium shrink-0"
-          >
-            Dismiss
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => onOpenApiKeyModal(errorMsg)}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-xs transition-colors cursor-pointer shadow-xs"
+            >
+              Fix & Configure API Key
+            </button>
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              className="text-red-700 hover:underline font-medium px-2 py-1 text-xs"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
